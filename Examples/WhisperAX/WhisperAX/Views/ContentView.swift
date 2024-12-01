@@ -265,100 +265,38 @@ struct ContentView: View {
 
     var transcriptionView: some View {
         VStack {
-            if !bufferEnergy.isEmpty {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 1) {
-                        let startIndex = max(bufferEnergy.count - 300, 0)
-                        ForEach(Array(bufferEnergy.enumerated())[startIndex...], id: \.element) { _, energy in
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 2)
-                                    .frame(width: 2, height: CGFloat(energy) * 24)
-                            }
-                            .frame(maxHeight: 24)
-                            .background(energy > Float(silenceThreshold) ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                        }
-                    }
-                }
-                .defaultScrollAnchor(.trailing)
-                .frame(height: 24)
-                .scrollIndicators(.never)
-            }
-
             ScrollView {
                 VStack(alignment: .leading) {
                     if enableEagerDecoding && isStreamMode {
-                        let startSeconds = eagerResults.first??.segments.first?.start ?? 0
-                        let endSeconds = lastAgreedSeconds > 0 ? lastAgreedSeconds : eagerResults.last??.segments.last?.end ?? 0
-                        let timestampText = (enableTimestamps && eagerResults.first != nil) ? "[\(String(format: "%.2f", startSeconds)) --> \(String(format: "%.2f", endSeconds))]" : ""
-                        Text("\(timestampText) \(Text(confirmedText).fontWeight(.bold))\(Text(hypothesisText).fontWeight(.bold).foregroundColor(.gray))")
-                            .font(.headline)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        if enableDecoderPreview {
-                            Text("\(currentText)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.top)
-                        }
+                        // Show ongoing transcription with confirmed and hypothesis text
+                        Text(confirmedText)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                        + Text(hypothesisText)
+                            .font(.title3)
+                            .foregroundColor(.gray)
                     } else {
-                        ForEach(Array(confirmedSegments.enumerated()), id: \.element) { _, segment in
-                            let timestampText = enableTimestamps ? "[\(String(format: "%.2f", segment.start)) --> \(String(format: "%.2f", segment.end))]" : ""
-                            Text(timestampText + segment.text)
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .tint(.green)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                        // Show confirmed segments
+                        ForEach(confirmedSegments, id: \.self) { segment in
+                            Text(segment.text)
+                                .font(.title3)
+                                .fontWeight(.medium)
                         }
-                        ForEach(Array(unconfirmedSegments.enumerated()), id: \.element) { _, segment in
-                            let timestampText = enableTimestamps ? "[\(String(format: "%.2f", segment.start)) --> \(String(format: "%.2f", segment.end))]" : ""
-                            Text(timestampText + segment.text)
-                                .font(.headline)
-                                .fontWeight(.bold)
+                        
+                        // Show unconfirmed segments
+                        ForEach(unconfirmedSegments, id: \.self) { segment in
+                            Text(segment.text)
+                                .font(.title3)
                                 .foregroundColor(.gray)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        if enableDecoderPreview {
-                            Text("\(currentText)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding()
             }
             .frame(maxWidth: .infinity)
             .defaultScrollAnchor(.bottom)
             .textSelection(.enabled)
-            .padding()
-            if let whisperKit,
-               !isStreamMode,
-               isTranscribing,
-               let task = transcribeTask,
-               !task.isCancelled,
-               whisperKit.progress.fractionCompleted < 1
-            {
-                HStack {
-                    ProgressView(whisperKit.progress)
-                        .progressViewStyle(.linear)
-                        .labelsHidden()
-                        .padding(.horizontal)
-
-                    Button {
-                        transcribeTask?.cancel()
-                        transcribeTask = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.secondary)
-                    }
-                    .buttonStyle(BorderlessButtonStyle())
-                }
-            }
         }
     }
 
